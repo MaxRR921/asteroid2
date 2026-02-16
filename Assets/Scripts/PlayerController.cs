@@ -6,8 +6,8 @@ public class PlayerController : BaseState
 {
     public float senseX = 250f;
     public float senseY = 250f;
-    public float moveSpeed = 8f;
-    public float jumpForce = 10000000f;
+    public float moveSpeed = 5f;
+    public float jumpForce = 450f;
 
     public Rigidbody rb;
     public Camera camera;
@@ -36,9 +36,9 @@ public class PlayerController : BaseState
         Vector3 targetMoveAmount = moveDir * moveSpeed;
         moveAmount = Vector3.SmoothDamp(moveAmount, targetMoveAmount, ref smoothMoveVelocity, .15f);
 
-        if (Input.GetButton("Jump"))
+        if (Input.GetButtonDown("Jump"))
         {
-            rb.AddForce(transform.up * jumpForce * Time.deltaTime);
+            rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
         }
 
     }
