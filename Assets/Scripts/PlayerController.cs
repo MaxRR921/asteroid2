@@ -4,48 +4,102 @@ using UnityEngine;
 
 public class PlayerController : BaseState
 {
-    public float senseX = 250f;
-    public float senseY = 250f;
-    public float moveSpeed = 5f;
-    public float jumpForce = 450f;
+    public float maxMoveSpeed = 12f;
+    public float acceleration = 10f;
+    public float jumpVelocityChange = 8f;
+    public float alignSpeed = 12f;
 
     public Rigidbody rb;
-    public Camera camera;
-    Transform cameraT;
-    float verticalLookRotation;
+    public StateMachine stateMachine;
+    public PlayerFall airborneState;
+    public PlayerLook playerLook;
 
+    Vector3 moveInput;
     Vector3 moveAmount;
-    Vector3 smoothMoveVelocity;
+    bool jumpQueued;
+
+    void Awake()
+    {
+        if (rb == null)
+        {
+            rb = GetComponent<Rigidbody>();
+        }
+
+        if (stateMachine == null)
+        {
+            stateMachine = GetComponent<StateMachine>();
+        }
+
+        if (airborneState == null)
+        {
+            airborneState = GetComponent<PlayerFall>();
+        }
+
+        if (playerLook == null)
+        {
+            playerLook = GetComponent<PlayerLook>();
+        }
+    }
 
     public override void stateStart()
     {
-        cameraT = camera.transform;
-        Cursor.lockState = CursorLockMode.Locked;
     }
 
-    // Update is called once per frame
     public override void stateUpdate()
     {
-        Debug.Log("Update Runs");
-        transform.Rotate(Vector3.up * Input.GetAxis("Mouse X") * Time.deltaTime * senseX);
-        verticalLookRotation += Input.GetAxis("Mouse Y") * Time.deltaTime * senseY;
-        verticalLookRotation = Mathf.Clamp(verticalLookRotation, -60f, 60f);
-        cameraT.localEulerAngles = Vector3.left * verticalLookRotation;
-
-        Vector3 moveDir = new Vector3(Input.GetAxisRaw("Horizontal"), 0 , Input.GetAxisRaw("Vertical")).normalized;
-        Vector3 targetMoveAmount = moveDir * moveSpeed;
-        moveAmount = Vector3.SmoothDamp(moveAmount, targetMoveAmount, ref smoothMoveVelocity, .15f);
-
+        moveInput = new Vector3(Input.GetAxisRaw("Horizontal"), 0f, Input.GetAxisRaw("Vertical")).normalized;
         if (Input.GetButtonDown("Jump"))
         {
-            rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+            jumpQueued = true;
+        }
+    }
+
+    public override void stateFixedUpdate()
+    {
+        if (airborneState == null)
+        {
+            return;
         }
 
-    }
+        if (stateMachine == null)
+        {
+            return;
+        }
 
-    void FixedUpdate()
-    {
-        rb.MovePosition(rb.position + transform.TransformDirection(moveAmount) * Time.fixedDeltaTime);
-    }
+        airborneState.RefreshSensors();
+        if (airborneState.CurrentAsteroid == null)
+        {
+            stateMachine.ChangeState(airborneState);
+            return;
+        }
 
+        if (!airborneState.IsGrounded)
+        {
+            stateMachine.ChangeState(airborneState);
+            return;
+        }
+
+        Asteroid asteroid = airborneState.CurrentAsteroid;
+        Quaternion targetUpRotation = asteroid.GetTargetUpRotation(rb.rotation, rb.position);
+        Quaternion alignedRotation = Quaternion.Slerp(rb.rotation, targetUpRotation, alignSpeed * Time.fixedDeltaTime);
+        float yawDelta = playerLook != null ? playerLook.ConsumeYawDelta() : 0f;
+        if (Mathf.Abs(yawDelta) > 0f)
+        {
+            Quaternion yawRotation = Quaternion.AngleAxis(yawDelta, alignedRotation * Vector3.up);
+            alignedRotation = yawRotation * alignedRotation;
+        }
+        rb.MoveRotation(alignedRotation);
+
+        Vector3 targetMoveAmount = moveInput * maxMoveSpeed;
+        moveAmount = Vector3.Lerp(moveAmount, targetMoveAmount, acceleration * Time.fixedDeltaTime);
+        Vector3 movement = transform.TransformDirection(moveAmount) * Time.fixedDeltaTime;
+        rb.MovePosition(rb.position + movement);
+
+        if (jumpQueued)
+        {
+            jumpQueued = false;
+            stateMachine.ChangeState(airborneState);
+            rb.AddForce(transform.up * jumpVelocityChange, ForceMode.VelocityChange);
+        }
+    }
 }

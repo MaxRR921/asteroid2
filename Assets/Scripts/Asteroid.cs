@@ -4,52 +4,45 @@ using UnityEngine;
 
 public class Asteroid : MonoBehaviour
 {
-    public float gravity = -2f;
-    public Vector3 Position;
-    public Transform feet;
-
-    void Start()
+    public enum GravityMode
     {
-        Position = new Vector3(this.transform.position.x, this.transform.position.y, this.transform.position.z);
+        Constant,
+        InverseSquare
     }
 
+    public GravityMode gravityMode = GravityMode.Constant;
+    public float gravityStrength = 30f;
+    public float minGravityDistance = 1f;
 
-
-
-    // Update is called once per frame
-
-    public void Flip(Transform body)
+    public Vector3 GetSurfaceUp(Vector3 worldPosition)
     {
-        //first, orient body
-        Vector3 targetDirection = (body.position - transform.position).normalized;
-        Vector3 bodyUp = body.up;
-
-        //body.rotation = Quaternion.FromToRotation(bodyUp, targetDirection) * body.rotation;
-        feet.rotation = Quaternion.FromToRotation(bodyUp, targetDirection) * body.rotation;
-
-        body.rotation = Quaternion.Slerp(body.transform.rotation, feet.transform.rotation, 2f * Time.deltaTime);
-        //apply downward force (towards center of this object)
-        body.GetComponent<Rigidbody>().AddForce(targetDirection * gravity);
-        Debug.Log("Flip");
-
+        return (worldPosition - transform.position).normalized;
     }
 
-    public void Fall(Transform body)
+    public Vector3 GetGravityAcceleration(Vector3 worldPosition)
     {
-        //first, orient body
-        Vector3 targetDirection = (body.position - transform.position).normalized;
-        Vector3 bodyUp = body.up;
+        Vector3 toCenter = transform.position - worldPosition;
+        float distance = Mathf.Max(toCenter.magnitude, minGravityDistance);
 
-        //body.rotation = Quaternion.FromToRotation(bodyUp, targetDirection) * body.rotation;
-        feet.rotation = Quaternion.FromToRotation(bodyUp, targetDirection) * body.rotation;
-        body.rotation = Quaternion.Slerp(body.transform.rotation, feet.transform.rotation, 10f * Time.deltaTime);
-        //apply downward force (towards center of this object)
-        body.GetComponent<Rigidbody>().AddForce(targetDirection * gravity);
-        Debug.Log("Fall");
+        if (gravityMode == GravityMode.InverseSquare)
+        {
+            return toCenter.normalized * (gravityStrength / (distance * distance));
+        }
 
+        return toCenter.normalized * gravityStrength;
     }
 
+    public Quaternion GetTargetUpRotation(Quaternion currentRotation, Vector3 worldPosition)
+    {
+        Vector3 bodyUp = currentRotation * Vector3.up;
+        Vector3 targetUp = GetSurfaceUp(worldPosition);
+        return Quaternion.FromToRotation(bodyUp, targetUp) * currentRotation;
+    }
 
-
+    public void AlignBody(Rigidbody body, float alignSpeed)
+    {
+        Quaternion targetRotation = GetTargetUpRotation(body.rotation, body.position);
+        Quaternion smoothed = Quaternion.Slerp(body.rotation, targetRotation, alignSpeed * Time.fixedDeltaTime);
+        body.MoveRotation(smoothed);
+    }
 }
-

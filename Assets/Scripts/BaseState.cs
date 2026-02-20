@@ -4,9 +4,19 @@ using UnityEngine;
 
 public abstract class BaseState : MonoBehaviour
 {
-    public abstract void stateStart();
+    public virtual void stateStart()
+    {
+    }
 
-    public abstract void stateUpdate();
+    public virtual void stateUpdate()
+    {
+    }
 
+    public virtual void stateFixedUpdate()
+    {
+    }
 
+    public virtual void stateExit()
+    {
+    }
 }
