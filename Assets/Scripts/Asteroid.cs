@@ -39,10 +39,10 @@ public class Asteroid : MonoBehaviour
         return Quaternion.FromToRotation(bodyUp, targetUp) * currentRotation;
     }
 
-    public void AlignBody(Rigidbody body, float alignSpeed)
-    {
-        Quaternion targetRotation = GetTargetUpRotation(body.rotation, body.position);
-        Quaternion smoothed = Quaternion.Slerp(body.rotation, targetRotation, alignSpeed * Time.fixedDeltaTime);
-        body.MoveRotation(smoothed);
-    }
+    // public void AlignBody(Rigidbody body, float alignSpeed)
+    // {
+    //     Quaternion targetRotation = GetTargetUpRotation(body.rotation, body.position);
+    //     Quaternion smoothed = Quaternion.Slerp(body.rotation, targetRotation, alignSpeed * Time.fixedDeltaTime);
+    //     body.MoveRotation(smoothed);
+    // }
 }

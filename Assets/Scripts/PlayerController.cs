@@ -67,8 +67,11 @@ public class PlayerController : BaseState
         }
 
         airborneState.RefreshSensors();
+        //
         if (airborneState.CurrentAsteroid == null)
         {
+            //this is a bad hack, it airborne state is for FALLING, we don't have a free space state, 
+            //there is no state for when the player is in the air but not falling, so we just switch to the fall state
             stateMachine.ChangeState(airborneState);
             return;
         }
@@ -79,15 +82,18 @@ public class PlayerController : BaseState
             return;
         }
 
+        //airborne state NEEDS AN ASTEROID TO FUNCTION RIGHT NOW, need to implement a free space state
         Asteroid asteroid = airborneState.CurrentAsteroid;
         Quaternion targetUpRotation = asteroid.GetTargetUpRotation(rb.rotation, rb.position);
         Quaternion alignedRotation = Quaternion.Slerp(rb.rotation, targetUpRotation, alignSpeed * Time.fixedDeltaTime);
         float yawDelta = playerLook != null ? playerLook.ConsumeYawDelta() : 0f;
+
         if (Mathf.Abs(yawDelta) > 0f)
         {
             Quaternion yawRotation = Quaternion.AngleAxis(yawDelta, alignedRotation * Vector3.up);
             alignedRotation = yawRotation * alignedRotation;
         }
+
         rb.MoveRotation(alignedRotation);
 
         Vector3 targetMoveAmount = moveInput * maxMoveSpeed;
@@ -98,7 +104,7 @@ public class PlayerController : BaseState
         if (jumpQueued)
         {
             jumpQueued = false;
-            stateMachine.ChangeState(airborneState);
+            // stateMachine.ChangeState(airborneState);
             rb.AddForce(transform.up * jumpVelocityChange, ForceMode.VelocityChange);
         }
     }

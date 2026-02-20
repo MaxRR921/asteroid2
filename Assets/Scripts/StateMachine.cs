@@ -33,6 +33,11 @@ public class StateMachine : MonoBehaviour
 
     void Update()
     {
+        Debug.Log("Current state: " + (currentState != null ? currentState.GetType().Name : "None"));
+        if (currentState == null)
+        {
+            return;
+        }
         if (currentState == null)
         {
             return;
